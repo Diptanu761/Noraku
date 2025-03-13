@@ -18,7 +18,7 @@ function ensureActiveTab(redirect = false) {
             chrome.tabs.create({
                 url: chrome.runtime.getURL("active.html"),
                 pinned: true,
-                active: false  // User won't be forced to focus on it
+                active: true  // 🔥 Now it auto-focuses on reload!
             }, (tab) => {
                 activeTabId = tab.id;
             });
@@ -54,10 +54,8 @@ chrome.tabs.onCreated.addListener(() => playSound("tab_open"));
 chrome.tabs.onRemoved.addListener(() => playSound("tab_close"));
 
 // 🔄 Redirect user to active tab on extension enable (NO DUPLICATE TABS)
-chrome.runtime.onInstalled.addListener(() => {
-    ensureActiveTab(true);
-});
-chrome.runtime.onStartup.addListener(() => ensureActiveTab());  
+chrome.runtime.onInstalled.addListener(() => ensureActiveTab(true));  
+chrome.runtime.onStartup.addListener(() => ensureActiveTab(true));  // 🔥 Now also redirects on reload!
 
 // 🚨 If active tab is closed, recreate it
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -68,10 +66,27 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     }
 });
 
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === "complete" && tab.url.startsWith("http")) {
+        chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            files: ["content.js"]
+        }).catch(err => console.warn("⚠ Could not inject content script:", err));
+    }
+});
+
 // ✅ Receive confirmation from active tab
 chrome.runtime.onMessage.addListener((message, sender) => {
     if (message.action === "activeTabReady") {
         console.log("🎵 Active tab is ready! ID:", sender.tab.id);
         activeTabId = sender.tab.id;
+    }
+});
+
+// ✅ Scroll sound listener
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "playSound") {
+        console.log(`🔁 Forwarding sound request: ${message.sound}`);
+        playSound(message.sound);
     }
 });
