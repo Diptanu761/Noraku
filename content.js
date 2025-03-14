@@ -19,7 +19,10 @@ if (!chrome.runtime?.id) {
         console.log(`🔊 Playing sound: ${soundName}`);
 
         audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
-        audio.volume = 0.5;
+
+        // Increase volume specifically for "scroll" sound
+        audio.volume = soundName === "scroll" ? 1.0 : 0.5; 
+
         audio.play().catch(err => console.error("⚠ Audio play failed:", err));
 
         scrollCooldown = true;
