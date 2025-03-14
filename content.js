@@ -42,5 +42,8 @@ if (!chrome.runtime?.id) {
 
     document.addEventListener("scroll", () => playSound("scroll"), { passive: true });
 
+    document.addEventListener("submit", () => {
+        chrome.runtime.sendMessage({ action: "playSound", sound: "form_submit" })
+    });
 }
 

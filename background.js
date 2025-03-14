@@ -1,33 +1,73 @@
 // ✅ Ensure Offscreen Document Exists
-async function ensureOffscreenDocument() {
-    const existingContexts = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] });
-    if (existingContexts.length === 0) {
+async function ensureOffscreen() {
+    const contexts = await chrome.offscreen.hasDocument();
+    if (!contexts) {
         await chrome.offscreen.createDocument({
             url: "offscreen.html",
             reasons: ["AUDIO_PLAYBACK"],
-            justification: "Play sound effects for tab events"
+            justification: "Play sound effects in the background."
         });
     }
 }
 
 // ✅ Handle Tab Open/Close Events
 chrome.tabs.onCreated.addListener(async () => {
-    await ensureOffscreenDocument();
+    await ensureOffscreen();
     chrome.runtime.sendMessage({ action: "playSound", sound: "tab_open" });
 });
 
 chrome.tabs.onRemoved.addListener(async () => {
-    await ensureOffscreenDocument();
+    await ensureOffscreen();
     chrome.runtime.sendMessage({ action: "playSound", sound: "tab_close" });
 });
 
-// Inject `content.js` into all active tabs on install
+// ✅ Handle Tab Dragging Events
+chrome.tabs.onMoved.addListener(async () => {
+    await ensureOffscreen();
+    chrome.runtime.sendMessage({ action: "playSound", sound: "tab_dragging" }).catch(err => {
+        console.warn("⚠ Tab Dragging Sound Error:", err);
+    });
+});
+
+// ✅ Handle Download Start/Complete Events
+chrome.downloads.onCreated.addListener(async () => {
+    await ensureOffscreen();
+    chrome.runtime.sendMessage({ action: "playSound", sound: "download_start" }).catch(err => {
+        console.warn("⚠ Download Start Sound Error:", err);
+    });
+});
+
+chrome.downloads.onChanged.addListener(async (delta) => {
+    if (delta.state && delta.state.current === "complete") {
+        await ensureOffscreen();
+        chrome.runtime.sendMessage({ action: "playSound", sound: "download_complete" }).catch(err => {
+            console.warn("⚠ Download Complete Sound Error:", err);
+        });
+    }
+});
+
+// ✅ Handle Bookmark Events
+chrome.bookmarks.onCreated.addListener(async () => {
+    await ensureOffscreen();
+    chrome.runtime.sendMessage({ action: "playSound", sound: "bookmark_added" });
+});
+
+// ✅ Handle Tab Mute/Unmute Events
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    if (changeInfo.mutedInfo) {
+        const soundName = changeInfo.mutedInfo.muted ? "tab_muted" : "tab_unmuted";
+        await ensureOffscreen();
+        chrome.runtime.sendMessage({ action: "playSound", sound: soundName });
+    }
+});
+
+// ✅ Inject `content.js` into all active tabs on install
 chrome.runtime.onInstalled.addListener(() => injectContentScripts());
 
-// Inject `content.js` into all active tabs on startup
+// ✅ Inject `content.js` into all active tabs on startup
 chrome.runtime.onStartup.addListener(() => injectContentScripts());
 
-// Function to inject `content.js` into all open tabs
+// ✅ Function to Inject `content.js`
 function injectContentScripts() {
     chrome.tabs.query({ url: ["http://*/*", "https://*/*"] }, (tabs) => {
         for (let tab of tabs) {
@@ -39,6 +79,7 @@ function injectContentScripts() {
     });
 }
 
+// ✅ Inject `content.js` when YouTube pages load
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "complete" && tab.url.includes("youtube.com")) {
         chrome.scripting.executeScript({
