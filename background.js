@@ -1,3 +1,26 @@
+// ✅ Ensure Offscreen Document Exists
+async function ensureOffscreenDocument() {
+    const existingContexts = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] });
+    if (existingContexts.length === 0) {
+        await chrome.offscreen.createDocument({
+            url: "offscreen.html",
+            reasons: ["AUDIO_PLAYBACK"],
+            justification: "Play sound effects for tab events"
+        });
+    }
+}
+
+// ✅ Handle Tab Open/Close Events
+chrome.tabs.onCreated.addListener(async () => {
+    await ensureOffscreenDocument();
+    chrome.runtime.sendMessage({ action: "playSound", sound: "tab_open" });
+});
+
+chrome.tabs.onRemoved.addListener(async () => {
+    await ensureOffscreenDocument();
+    chrome.runtime.sendMessage({ action: "playSound", sound: "tab_close" });
+});
+
 // Inject `content.js` into all active tabs on install
 chrome.runtime.onInstalled.addListener(() => injectContentScripts());
 

@@ -3,7 +3,7 @@
     "name": "Noraku",
     "version": "1.0",
     "description": "Plays sounds on browser actions.",
-    "permissions": ["tabs", "activeTab", "storage", "scripting"],
+    "permissions": ["tabs", "activeTab", "offscreen", "storage", "scripting"],
     "host_permissions": ["<all_urls>"],
     "background": {
       "service_worker": "background.js",
