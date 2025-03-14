@@ -2,25 +2,38 @@ if (!chrome.runtime?.id) {
     console.warn("❌ Extension context invalidated. Content script won't run.");
 } else {
     console.log("📜 Scroll detection active!");
-    // Touch Scroll Detection (Mouse)
-    window.addEventListener("wheel", () => {
-        console.log("📜 Mouse scroll detected, sending message...");
-        chrome.runtime.sendMessage({ action: "playSound", sound: "scroll" })
-            .catch(err => console.warn("⚠ Scroll message failed:", err));
-    }, { passive: true });
-    
-    // Touch Scroll Detection (For Mobile)
-    window.addEventListener("touchmove", () => {
-        console.log("📜 Touch scroll detected, sending message...");
-        chrome.runtime.sendMessage({ action: "playSound", sound: "scroll" });
-    }, { passive: true });
 
-    // Keyboard Scroll Detection (Arrow Keys / Page Up-Down)
+    let audio = document.createElement("audio");
+    audio.style.display = "none";
+    document.body.appendChild(audio);
+
+    let scrollCooldown = false;
+    let lastScrollTime = 0;
+    const SCROLL_DELAY = 300;
+
+    function playSound(soundName) {
+        let now = Date.now();
+        if (scrollCooldown || now - lastScrollTime < SCROLL_DELAY) return;
+        
+        lastScrollTime = now;
+        console.log(`🔊 Playing sound: ${soundName}`);
+
+        audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
+        audio.volume = 0.5;
+        audio.play().catch(err => console.error("⚠ Audio play failed:", err));
+
+        scrollCooldown = true;
+        setTimeout(() => scrollCooldown = false, SCROLL_DELAY);
+    }
+
+    window.addEventListener("wheel", () => playSound("scroll"), { passive: true });
+    window.addEventListener("touchmove", () => playSound("scroll"), { passive: true });
+
     window.addEventListener("keydown", (event) => {
         if (["ArrowUp", "ArrowDown", "PageUp", "PageDown"].includes(event.key)) {
-            console.log("📜 Keyboard scroll detected, sending message...");
-            chrome.runtime.sendMessage({ action: "playSound", sound: "scroll" });
+            playSound("scroll");
         }
     });
-}
 
+    document.addEventListener("scroll", () => playSound("scroll"), { passive: true });
+}
