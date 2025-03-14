@@ -41,8 +41,6 @@ if (!chrome.runtime?.id) {
     });
 
     document.addEventListener("scroll", () => playSound("scroll"), { passive: true });
-<<<<<<< HEAD
+
 }
-=======
-}
->>>>>>> cfc6a77 (Fixed scrolling error)
+
