@@ -1,12 +1,20 @@
 // ✅ Ensure Offscreen Document Exists
 async function ensureOffscreen() {
-    const contexts = await chrome.offscreen.hasDocument();
-    if (!contexts) {
-        await chrome.offscreen.createDocument({
-            url: "offscreen.html",
-            reasons: ["AUDIO_PLAYBACK"],
-            justification: "Play sound effects in the background."
-        });
+    const hasDocument = await chrome.offscreen.hasDocument();
+
+    if (!hasDocument) {
+        try {
+            await chrome.offscreen.createDocument({
+                url: "offscreen.html",
+                reasons: ["AUDIO_PLAYBACK"],
+                justification: "Play sound effects in the background."
+            });
+            console.log("✅ Offscreen document created.");
+        } catch (err) {
+            console.error("❌ Failed to create offscreen document:", err);
+        }
+    } else {
+        console.log("⚠ Offscreen document already exists.");
     }
 }
 
@@ -46,6 +54,12 @@ chrome.downloads.onChanged.addListener(async (delta) => {
     }
 });
 
+chrome.downloads.onChanged.addListener((downloadDelta) => {
+    if (downloadDelta.state && downloadDelta.state.current === "interrupted") {
+        chrome.runtime.sendMessage({ action: "downloadFailed" });
+    }
+});
+
 // ✅ Handle Bookmark Events
 chrome.bookmarks.onCreated.addListener(async () => {
     await ensureOffscreen();
@@ -60,6 +74,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         chrome.runtime.sendMessage({ action: "playSound", sound: soundName });
     }
 });
+
+
 
 // ✅ Inject `content.js` into all active tabs on install
 chrome.runtime.onInstalled.addListener(() => injectContentScripts());
