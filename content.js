@@ -66,8 +66,28 @@ if (!chrome.runtime?.id) {
     });
 
     document.addEventListener("keydown", (event) => {
+        let soundName = null;
+    
         if (event.key === "Enter") {
-            playSound("enter");
+            soundName = "enter"; // Enter key sound
+        } else if (event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/)) {
+            soundName = "A_Z"; // A-Z and 0-9 keys
+        } else if (["Control", "Shift", "Tab", "CapsLock", "Alt"].includes(event.key)) {
+            soundName = "special-keys"; // Special keys
+        } else if (event.key === " ") {
+            soundName = "spacebar"; // Spacebar
+        } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+            soundName = "arrow-keys"; // Arrow keys
+        } else if (event.key.match(/^F[1-9]$|^F1[0-2]$/)) {
+            soundName = "function-keys"; // Function keys (F1-F12)
+        } else if (event.key === "Backspace") {
+            soundName = "backspace"; // Backspace key
+        } else if (event.key === "Escape") {
+            soundName = "escape"; // Play Escape key sound
+        }
+    
+        if (soundName) {
+            playSound(soundName);
         }
     });
 
