@@ -20,18 +20,23 @@ if (!chrome.runtime?.id) {
         lastScrollTime = now;
         console.log(`🔊 Playing sound: ${soundName}`);
 
-        if (chrome.runtime?.id) {
-            audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
-            audio.volume = soundName === "scroll" ? 1.0 : 0.5;
-
-            audio.play().catch(err => {
-                if (err.name !== "NotAllowedError") {
-                    console.warn("⚠ Audio play failed:", err);
-                }
-            });
-        } else {
-            console.warn("⚠ Extension context invalidated. Cannot load sound.");
-        }
+        chrome.storage.local.get(["volumes"], (data) => {
+            const volumes = data.volumes || {};
+            const volume = volumes[soundName] !== undefined ? volumes[soundName] / 100 : 0.5; // Default 50%
+    
+            if (chrome.runtime?.id) {
+                audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
+                audio.volume = volume;
+    
+                audio.play().catch(err => {
+                    if (err.name !== "NotAllowedError") {
+                        console.warn("⚠ Audio play failed:", err);
+                    }
+                });
+            } else {
+                console.warn("⚠ Extension context invalidated. Cannot load sound.");
+            }
+        });
 
         scrollCooldown = true;
         setTimeout(() => (scrollCooldown = false), SCROLL_DELAY);
@@ -69,30 +74,50 @@ if (!chrome.runtime?.id) {
         let soundName = null;
         let key = event.key; // Store key event
     
-        if (key === "Enter") {
-            soundName = "enter"; // Enter key sound
-        } else if (key.match(/^[a-z]$/i)) {
+        // No cooldown for normal typing keys
+        if (key.match(/^[a-z]$/i)) {
             soundName = "A_Z"; // A-Z and a-z keys
+        } else if (key.match(/^[0-9]$/)) {
+            soundName = "num-keys"; // Number keys above A-Z
         } else if (["Control", "Shift", "Tab", "CapsLock", "Alt"].includes(key)) {
             soundName = "special-keys"; // Special keys
-        } else if (key === " ") {
-            soundName = "spacebar"; // Spacebar
-        } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
-            soundName = "arrow-keys"; // Arrow keys
-        } else if (key.match(/^F[1-9]$|^F1[0-2]$/)) {
-            soundName = "function-keys"; // Function keys (F1-F12)
+        } else if (key === "Enter") {
+            soundName = "enter"; // Enter key sound
         } else if (key === "Backspace") {
             soundName = "backspace"; // Backspace key
         } else if (key === "Escape") {
             soundName = "escape"; // Escape key
-        } else if (key.match(/^[0-9]$/)) {
-            soundName = "num-keys"; // Number keys above A-Z
+        } 
+        // Apply cooldown only for these keys (to avoid spam)
+        else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
+            playWithCooldown("arrow-keys", 150); // Small delay for better feel
+            return;
+        } else if (key === " ") {
+            playWithCooldown("spacebar", 200); // Spacebar cooldown
+            return;
+        } else if (key.match(/^F[1-9]$|^F1[0-2]$/)) {
+            playWithCooldown("function-keys", 300); // Function keys cooldown
+            return;
         }
     
+        // Play sound normally for typing-related keys
         if (soundName) {
             playSound(soundName);
         }
     });
+    
+    // Function to handle cooldown-based key sounds
+    let keyCooldown = false;
+    function playWithCooldown(sound, delay) {
+        if (keyCooldown) return;
+        
+        playSound(sound);
+        keyCooldown = true;
+        
+        setTimeout(() => {
+            keyCooldown = false;
+        }, delay);
+    }
 
     function detectVideos(root = document) {
         root.querySelectorAll("video").forEach(video => {

@@ -18,69 +18,50 @@ async function ensureOffscreen() {
     }
 }
 
-// ✅ Handle Tab Open/Close Events
-chrome.tabs.onCreated.addListener(async () => {
-    await ensureOffscreen();
-    chrome.runtime.sendMessage({ action: "playSound", sound: "tab_open" });
-});
+// ✅ Function to Play Sound with Volume Control
+async function playSound(action) {
+    await ensureOffscreen(); // Make sure offscreen exists
 
-chrome.tabs.onRemoved.addListener(async () => {
-    await ensureOffscreen();
-    chrome.runtime.sendMessage({ action: "playSound", sound: "tab_close" });
-});
+    chrome.storage.local.get(["volumes"], (data) => {
+        const volumes = data.volumes || {};
+        const volume = volumes[action] !== undefined ? volumes[action] / 100 : 0.5; // Default to 50%
+
+        // Send to `offscreen.js`
+        chrome.runtime.sendMessage({
+            action: "playSoundOffscreen", // Make sure this is handled in `offscreen.js`
+            sound: action,
+            volume: volume
+        });
+    });
+}
+
+// ✅ Handle Tab Open/Close Events
+chrome.tabs.onCreated.addListener(() => playSound("tab_open"));
+chrome.tabs.onRemoved.addListener(() => playSound("tab_close"));
 
 // ✅ Handle Tab Dragging Events
-chrome.tabs.onMoved.addListener(async () => {
-    await ensureOffscreen();
-    chrome.runtime.sendMessage({ action: "playSound", sound: "tab_dragging" }).catch(err => {
-        console.warn("⚠ Tab Dragging Sound Error:", err);
-    });
-});
+chrome.tabs.onMoved.addListener(() => playSound("tab_dragging"));
 
 // ✅ Handle Download Start/Complete Events
-chrome.downloads.onCreated.addListener(async () => {
-    await ensureOffscreen();
-    chrome.runtime.sendMessage({ action: "playSound", sound: "download_start" }).catch(err => {
-        console.warn("⚠ Download Start Sound Error:", err);
-    });
-});
-
-chrome.downloads.onChanged.addListener(async (delta) => {
-    if (delta.state && delta.state.current === "complete") {
-        await ensureOffscreen();
-        chrome.runtime.sendMessage({ action: "playSound", sound: "download_complete" }).catch(err => {
-            console.warn("⚠ Download Complete Sound Error:", err);
-        });
-    }
-});
-
-chrome.downloads.onChanged.addListener((downloadDelta) => {
-    if (downloadDelta.state && downloadDelta.state.current === "interrupted") {
-        chrome.runtime.sendMessage({ action: "downloadFailed" });
-    }
+chrome.downloads.onCreated.addListener(() => playSound("download_start"));
+chrome.downloads.onChanged.addListener((delta) => {
+    if (delta.state?.current === "complete") playSound("download_complete");
+    if (delta.state?.current === "interrupted") playSound("download_failed");
 });
 
 // ✅ Handle Bookmark Events
-chrome.bookmarks.onCreated.addListener(async () => {
-    await ensureOffscreen();
-    chrome.runtime.sendMessage({ action: "playSound", sound: "bookmark_added" });
-});
+chrome.bookmarks.onCreated.addListener(() => playSound("bookmark_added"));
 
 // ✅ Handle Tab Mute/Unmute Events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.mutedInfo) {
         const soundName = changeInfo.mutedInfo.muted ? "tab_muted" : "tab_unmuted";
-        await ensureOffscreen();
-        chrome.runtime.sendMessage({ action: "playSound", sound: soundName });
+        playSound(soundName);
     }
 });
 
-
-
-// ✅ Inject `content.js` into all active tabs on install
+// ✅ Inject `content.js` into all active tabs on install & startup
 chrome.runtime.onInstalled.addListener(() => injectContentScripts());
-
-// ✅ Inject `content.js` into all active tabs on startup
 chrome.runtime.onStartup.addListener(() => injectContentScripts());
 
 // ✅ Function to Inject `content.js`
@@ -90,7 +71,7 @@ function injectContentScripts() {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 files: ["content.js"]
-            }).catch(err => console.warn("Could not inject content script:", err));
+            }).catch(err => console.warn("⚠ Could not inject content script:", err));
         }
     });
 }
@@ -101,6 +82,19 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         chrome.scripting.executeScript({
             target: { tabId: tabId },
             files: ["content.js"]
-        }).catch(err => console.warn("Could not inject content script:", err));
+        }).catch(err => console.warn("⚠ Could not inject content script:", err));
+    }
+});
+
+// ✅ Listen for Messages from Popup & Forward to Offscreen
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+    if (message.action === "updateVolume") {
+        chrome.storage.local.set({ volumes: message.volumes }, () => {
+            console.log("🔊 Updated volumes:", message.volumes);
+        });
+    }
+
+    if (message.action === "playSound") {
+        await playSound(message.sound); // Ensure proper handling
     }
 });
