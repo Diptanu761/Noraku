@@ -16,10 +16,10 @@ if (!chrome.runtime?.id) {
     function playSound(soundName) {
         let now = Date.now();
         if (scrollCooldown || now - lastScrollTime < SCROLL_DELAY) return;
-    
+
         lastScrollTime = now;
         console.log(`🔊 Playing sound: ${soundName}`);
-    
+
         if (chrome.runtime?.id) {
             audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
             audio.volume = soundName === "scroll" ? 1.0 : 0.5;
@@ -32,7 +32,7 @@ if (!chrome.runtime?.id) {
         } else {
             console.warn("⚠ Extension context invalidated. Cannot load sound.");
         }
-    
+
         scrollCooldown = true;
         setTimeout(() => (scrollCooldown = false), SCROLL_DELAY);
     }
@@ -67,23 +67,26 @@ if (!chrome.runtime?.id) {
 
     document.addEventListener("keydown", (event) => {
         let soundName = null;
+        let key = event.key; // Store key event
     
-        if (event.key === "Enter") {
+        if (key === "Enter") {
             soundName = "enter"; // Enter key sound
-        } else if (event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/)) {
-            soundName = "A_Z"; // A-Z and 0-9 keys
-        } else if (["Control", "Shift", "Tab", "CapsLock", "Alt"].includes(event.key)) {
+        } else if (key.match(/^[a-z]$/i)) {
+            soundName = "A_Z"; // A-Z and a-z keys
+        } else if (["Control", "Shift", "Tab", "CapsLock", "Alt"].includes(key)) {
             soundName = "special-keys"; // Special keys
-        } else if (event.key === " ") {
+        } else if (key === " ") {
             soundName = "spacebar"; // Spacebar
-        } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+        } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
             soundName = "arrow-keys"; // Arrow keys
-        } else if (event.key.match(/^F[1-9]$|^F1[0-2]$/)) {
+        } else if (key.match(/^F[1-9]$|^F1[0-2]$/)) {
             soundName = "function-keys"; // Function keys (F1-F12)
-        } else if (event.key === "Backspace") {
+        } else if (key === "Backspace") {
             soundName = "backspace"; // Backspace key
-        } else if (event.key === "Escape") {
-            soundName = "escape"; // Play Escape key sound
+        } else if (key === "Escape") {
+            soundName = "escape"; // Escape key
+        } else if (key.match(/^[0-9]$/)) {
+            soundName = "num-keys"; // Number keys above A-Z
         }
     
         if (soundName) {
@@ -94,7 +97,7 @@ if (!chrome.runtime?.id) {
     function detectVideos(root = document) {
         root.querySelectorAll("video").forEach(video => {
             if (!video.dataset.hasListener) {
-                video.dataset.hasListener = "true"; 
+                video.dataset.hasListener = "true";
 
                 video.addEventListener("play", () => playSound("video_play"));
                 video.addEventListener("pause", () => playSound("video_pause"));
@@ -111,7 +114,7 @@ if (!chrome.runtime?.id) {
     detectVideos();
 
     if (window.location.hostname.includes("youtube.com")) {
-        setInterval(detectVideos, 1000); 
+        setInterval(detectVideos, 1000);
     }
 
     document.addEventListener("click", () => playSound("click"));
