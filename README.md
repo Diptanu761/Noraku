@@ -39,7 +39,7 @@ Installing **Noraku** is simple!
 
 Run this command in your terminal (**requires Git**):  
 ```bash
-git clone https://github.com/yourusername/noraku.git
+git clone https://github.com/Diptanu761/noraku.git
 ```
 
 2️⃣ **Load the Extension in Chrome**
