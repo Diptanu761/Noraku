@@ -9,26 +9,22 @@ async function ensureOffscreen() {
                 reasons: ["AUDIO_PLAYBACK"],
                 justification: "Play sound effects in the background."
             });
-            console.log("✅ Offscreen document created.");
         } catch (err) {
             console.error("❌ Failed to create offscreen document:", err);
         }
-    } else {
-        console.log("⚠ Offscreen document already exists.");
     }
 }
 
 // ✅ Function to Play Sound with Volume Control
 async function playSound(action) {
-    await ensureOffscreen(); // Make sure offscreen exists
+    await ensureOffscreen(); 
 
     chrome.storage.local.get(["volumes"], (data) => {
         const volumes = data.volumes || {};
-        const volume = volumes[action] !== undefined ? volumes[action] / 100 : 0.5; // Default to 50%
+        const volume = volumes[action] !== undefined ? volumes[action] / 100 : 0.5; 
 
-        // Send to `offscreen.js`
         chrome.runtime.sendMessage({
-            action: "playSoundOffscreen", // Make sure this is handled in `offscreen.js`
+            action: "playSoundOffscreen",
             sound: action,
             volume: volume
         });
@@ -71,7 +67,7 @@ function injectContentScripts() {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 files: ["content.js"]
-            }).catch(err => console.warn("⚠ Could not inject content script:", err));
+            })
         }
     });
 }
@@ -82,7 +78,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         chrome.scripting.executeScript({
             target: { tabId: tabId },
             files: ["content.js"]
-        }).catch(err => console.warn("⚠ Could not inject content script:", err));
+        })
     }
 });
 
@@ -95,6 +91,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
 
     if (message.action === "playSound") {
-        await playSound(message.sound); // Ensure proper handling
+        await playSound(message.sound); 
     }
 });

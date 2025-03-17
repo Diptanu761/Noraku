@@ -1,7 +1,6 @@
 if (!chrome.runtime?.id) {
     console.warn("❌ Extension context invalidated. Content script won't run.");
 } else {
-    console.log("📜 Scroll detection active!");
 
     let audio = document.createElement("audio");
     audio.style.display = "none";
@@ -18,7 +17,6 @@ if (!chrome.runtime?.id) {
         if (scrollCooldown || now - lastScrollTime < SCROLL_DELAY) return;
 
         lastScrollTime = now;
-        console.log(`🔊 Playing sound: ${soundName}`);
 
         chrome.storage.local.get(["volumes"], (data) => {
             const volumes = data.volumes || {};
@@ -28,13 +26,7 @@ if (!chrome.runtime?.id) {
                 audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
                 audio.volume = volume;
     
-                audio.play().catch(err => {
-                    if (err.name !== "NotAllowedError") {
-                        console.warn("⚠ Audio play failed:", err);
-                    }
-                });
-            } else {
-                console.warn("⚠ Extension context invalidated. Cannot load sound.");
+                audio.play()
             }
         });
 
@@ -61,10 +53,10 @@ if (!chrome.runtime?.id) {
         const element = event.target;
 
         if (
-            element.tagName === "INPUT" && element.type === "text" ||  // Normal input fields
-            element.tagName === "INPUT" && element.type === "search" || // Search input fields
-            element.tagName === "TEXTAREA" || // Multi-line text areas
-            element.isContentEditable // Editable divs (like ChatGPT)
+            element.tagName === "INPUT" && element.type === "text" ||  
+            element.tagName === "INPUT" && element.type === "search" || 
+            element.tagName === "TEXTAREA" || 
+            element.isContentEditable 
         ) {
             playSound("search_focus");
         }
@@ -72,9 +64,8 @@ if (!chrome.runtime?.id) {
 
     document.addEventListener("keydown", (event) => {
         let soundName = null;
-        let key = event.key; // Store key event
-    
-        // No cooldown for normal typing keys
+        let key = event.key; 
+
         if (key.match(/^[a-z]$/i)) {
             soundName = "A_Z"; // A-Z and a-z keys
         } else if (key.match(/^[0-9]$/)) {
@@ -88,19 +79,17 @@ if (!chrome.runtime?.id) {
         } else if (key === "Escape") {
             soundName = "escape"; // Escape key
         } 
-        // Apply cooldown only for these keys (to avoid spam)
         else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
-            playWithCooldown("arrow-keys", 150); // Small delay for better feel
+            playWithCooldown("arrow-keys", 150); 
             return;
         } else if (key === " ") {
-            playWithCooldown("spacebar", 200); // Spacebar cooldown
+            playWithCooldown("spacebar", 200); 
             return;
         } else if (key.match(/^F[1-9]$|^F1[0-2]$/)) {
-            playWithCooldown("function-keys", 300); // Function keys cooldown
+            playWithCooldown("function-keys", 300); 
             return;
         }
-    
-        // Play sound normally for typing-related keys
+
         if (soundName) {
             playSound(soundName);
         }

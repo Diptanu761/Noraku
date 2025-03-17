@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     keypressArrow.addEventListener("click", function () {
         if (keypressSubcategories.style.display === "none" || keypressSubcategories.style.display === "") {
             keypressSubcategories.style.display = "block";
-            this.textContent = "▼"; // Change arrow direction
+            this.textContent = "▼"; 
         } else {
             keypressSubcategories.style.display = "none";
             this.textContent = "▶";
@@ -34,17 +34,16 @@ document.addEventListener("DOMContentLoaded", function () {
             const action = this.getAttribute("data-action");
             const sliderContainer = document.getElementById(`slider-container-${action}`);
 
-            if (!sliderContainer) { // ✅ Fix: Ensure the container exists
-                console.warn(`⚠ Slider container for "${action}" not found.`);
+            if (!sliderContainer) { 
                 return;
             }
 
             if (sliderContainer.style.display === "none" || sliderContainer.style.display === "") {
                 sliderContainer.style.display = "block";
-                this.textContent = "▼"; // Change right arrow to down arrow
+                this.textContent = "▼"; 
             } else {
                 sliderContainer.style.display = "none";
-                this.textContent = "▶"; // Reset to right arrow
+                this.textContent = "▶"; 
             }
         });
     });
@@ -55,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         document.querySelectorAll(".volume-slider input").forEach(slider => {
             const action = slider.closest(".volume-slider").getAttribute("data-action");
-            slider.value = volumes[action] !== undefined ? volumes[action] : 50; // Default to 50%
+            slider.value = volumes[action] !== undefined ? volumes[action] : 50; 
         });
     });
 
@@ -65,7 +64,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const action = this.closest(".volume-slider").getAttribute("data-action");
             const volume = this.value;
 
-            // Save the volume change
             chrome.storage.local.get(["volumes"], (data) => {
                 const volumes = data.volumes || {};
                 volumes[action] = volume;
@@ -73,7 +71,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 chrome.storage.local.set({ volumes }, () => {
                     console.log(`🔊 Saved volume for ${action}: ${volume}`);
 
-                    // Send update to background.js
                     chrome.runtime.sendMessage({ action: "updateVolume", volumes });
                 });
             });
@@ -86,7 +83,6 @@ document.addEventListener("DOMContentLoaded", function () {
             let audio = new Audio(chrome.runtime.getURL(`sounds/${message.sound}.mp3`));
             audio.volume = 1.0;
 
-            // Try playing the sound, retry on user interaction if blocked
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.catch(err => {
