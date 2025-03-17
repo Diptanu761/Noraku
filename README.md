@@ -1,6 +1,6 @@
 # **Noraku** 🎵  
 
-![Noraku Logo](icons/noraku_48.png)  
+![Noraku Logo](icons/noraku_128.png)  
 
 A browser extension that enhances your browsing experience by adding immersive sound effects to various actions!  
 
