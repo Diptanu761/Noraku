@@ -18,17 +18,21 @@ if (!chrome.runtime?.id) {
 
         lastScrollTime = now;
 
-        chrome.storage.local.get(["volumes"], (data) => {
-            const volumes = data.volumes || {};
-            const volume = volumes[soundName] !== undefined ? volumes[soundName] / 100 : 0.5; // Default 50%
-    
-            if (chrome.runtime?.id) {
-                audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
-                audio.volume = volume;
-    
-                audio.play()
-            }
-        });
+        if (chrome.runtime?.id) {
+            chrome.storage.local.get(["volumes"], (data) => {
+                const volumes = data.volumes || {};
+                const volume = volumes[soundName] !== undefined ? volumes[soundName] / 100 : 0.5; // Default 50%
+        
+                if (chrome.runtime?.id) {  // Additional check before accessing runtime API
+                    audio.src = chrome.runtime.getURL(`sounds/${soundName}.mp3`);
+                    audio.volume = volume;
+        
+                    audio.play().catch(() => {
+                        // Catch and ignore any play() errors (e.g., user didn't interact)
+                    });
+                }
+            });
+        }
 
         scrollCooldown = true;
         setTimeout(() => (scrollCooldown = false), SCROLL_DELAY);
@@ -146,9 +150,9 @@ if (!chrome.runtime?.id) {
         }
     });
 
-    document.addEventListener("contextmenu", () => {
-        playErrorSound(); 
-    }, { passive: true }); 
+    document.addEventListener("contextmenu", (event) => {
+        // Do nothing special, allow the default right-click behavior
+    });
 
     document.addEventListener("keydown", (event) => {
         const blockedShortcuts = ["s", "u", "i", "j"];

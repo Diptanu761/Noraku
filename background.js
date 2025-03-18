@@ -10,7 +10,6 @@ async function ensureOffscreen() {
                 justification: "Play sound effects in the background."
             });
         } catch (err) {
-            console.error("❌ Failed to create offscreen document:", err);
         }
     }
 }
