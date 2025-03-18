@@ -146,11 +146,9 @@ if (!chrome.runtime?.id) {
         }
     });
 
-    // ✅ Blocked Actions (Right-Click & Restricted Shortcuts)
-    document.addEventListener("contextmenu", (event) => {
-        event.preventDefault();
-        playSound("error");
-    });
+    document.addEventListener("contextmenu", () => {
+        playErrorSound(); 
+    }, { passive: true }); 
 
     document.addEventListener("keydown", (event) => {
         const blockedShortcuts = ["s", "u", "i", "j"];
